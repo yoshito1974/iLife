@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="ja">
+<head><link rel="stylesheet" href="assets/css/app.css" />
+  
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>レシピ表示 — Recipe Box</title>
+  <style>/* app.css (inlined) */
+:root{
+  --bg:#f4f8f4;--panel:#fff;--ink:#203024;--muted:#5a6a5f;
+  --brand:#2a7d5f;--brand-weak:#bfe4d1;--tab-bg:#e0efe7;--tab-active:#1c5f4a;
+  --accent:#2f9e72;--border:#d5e4da;--shadow:0 8px 24px rgba(0,0,0,.07);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,Noto Sans JP,sans-serif}
+.app-header{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:16px;justify-content:space-between;background:linear-gradient(180deg,#eaf6f0,var(--bg));padding:12px 16px;border-bottom:1px solid var(--border)}
+.brand{font-weight:700;margin:0;font-size:20px;display:flex;align-items:center;gap:8px}
+.badge{background:var(--brand-weak);color:var(--brand);padding:2px 8px;border-radius:999px;font-size:12px}
+.header-actions{display:flex;gap:8px}.header-actions .btn{min-width:84px}.header-actions-dropdown{display:none}
+.btn{background:var(--brand);color:#fff;border:none;border-radius:12px;padding:8px 12px;box-shadow:var(--shadow);cursor:pointer}
+.btn:disabled{opacity:.5;cursor:not-allowed}.btn.ghost{background:transparent;color:var(--brand);border:1px solid var(--brand)}
+.container{max-width:1100px;margin:20px auto;padding:0 16px}
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow);padding:16px;margin-bottom:16px}
+.lead{font-size:1.05rem;line-height:1.6}
+.tabs{display:flex;gap:6px;background:var(--tab-bg);padding:8px;border-radius:12px;border:1px solid var(--border);box-shadow:var(--shadow);margin-bottom:16px}
+.tab{background:transparent;border:none;border-radius:10px;padding:10px 14px;color:var(--tab-active);font-weight:600;cursor:pointer}
+.tab.is-active{background:var(--tab-active);color:#fff}
+.grid.two-col{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow);padding:12px;display:flex;flex-direction:column;gap:8px}
+.card h3{margin:0 0 4px 0}.card .muted{font-size:12px}.card .actions{display:flex;gap:8px;flex-wrap:wrap}
+.table{width:100%;border-collapse:separate;border-spacing:0}
+.table th,.table td{padding:10px;border-bottom:1px solid var(--border)}
+.table th{background:#f7fbf9;text-align:left}.table .num{text-align:right;font-variant-numeric:tabular-nums}
+.right{text-align:right}.muted{color:var(--muted)}
+.two-col-layout{display:grid;grid-template-columns:1.2fr .8fr;gap:16px}
+.form .field{display:grid;gap:6px;margin-bottom:12px}
+.form input,.form textarea{border:1px solid var(--border);border-radius:12px;padding:10px;background:#fff}
+.cost-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.app-footer{padding:16px;text-align:center;color:var(--muted)}
+.tag{background:var(--brand-weak);color:var(--brand);padding:2px 6px;border-radius:6px;font-size:12px;margin-right:4px}
+@media (max-width:900px){.grid.two-col{grid-template-columns:1fr}.two-col-layout{grid-template-columns:1fr}.header-actions{display:none}.header-actions-dropdown{display:block}}
+/* Drawer/Hamburger */
+.drawer-toggle{display:none}
+.hamburger{position:fixed;left:12px;bottom:16px;z-index:30;width:52px;height:52px;background:var(--brand);border-radius:999px;display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow);cursor:pointer}
+.hamburger span{display:block;width:24px;height:3px;background:#fff;margin:3px 0;border-radius:2px}
+.drawer{position:fixed;left:0;top:0;height:100vh;width:260px;background:#fff;border-right:1px solid var(--border);box-shadow:var(--shadow);transform:translateX(-100%);transition:transform .25s ease;z-index:25;display:flex;flex-direction:column}
+.drawer-header{padding:16px;font-weight:700;border-bottom:1px solid var(--border);background:#f7fbf9}
+.drawer-nav{display:flex;flex-direction:column;gap:4px;padding:8px}
+.drawer-link{display:block;text-align:left;padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:#fff;color:var(--ink);cursor:pointer;text-decoration:none}
+.drawer-link:hover{background:#f2faf6}
+.drawer-toggle:checked ~ .drawer{transform:none}
+</style><link rel="stylesheet" href="assets/css/drawer.vertical.css" />
+</head>
+<body>
+  <input id="drawer-toggle" type="checkbox" class="drawer-toggle" aria-label="メニューを開閉" />
+  <aside class="drawer">
+    <div class="drawer-header">メニュー</div>
+    <nav class="drawer-nav">
+      <a href="index.html" class="drawer-link">ホーム</a>
+      <button class="drawer-link js-edit">編集</button>
+      <button class="drawer-link js-back">戻る</button>
+    </nav>
+  </aside>
+  <label for="drawer-toggle" class="hamburger" aria-label="メニュー">
+    <span></span><span></span><span></span>
+  </label>
+
+  <header class="app-header">
+    <h1 class="brand">レシピ表示</h1>
+    <div class="header-actions" data-actions>
+      <button class="btn js-edit">編集</button>
+      <button class="btn js-back">戻る</button>
+    </div>
+  </header>
+
+  <main class="container two-col-layout">
+    <article class="panel">
+      <h2 id="recipeTitle">タイトル</h2>
+      <div class="muted" id="meta">作成日 — / 更新日 —</div>
+      <div id="tags" style="margin:8px 0;"></div>
+      <div class="fav-block" style="margin-top:8px;">
+        <button id="favBtn" class="btn">♡ お気に入り</button>
+      </div>
+      <p id="recipeIntro" class="lead"></p>
+      <div id="notes" style="margin-top:16px;white-space:pre-wrap;"></div>
+    </article>
+
+    <aside class="panel">
+      <h3>材料</h3>
+      <div id="ingredients">
+        <div class="muted">未登録</div>
+      </div>
+
+      <h3 style="margin-top:24px;">手順</h3>
+      <ol id="steps">
+        <li class="muted">未登録</li>
+      </ol>
+    </aside>
+  </main>
+
+  <footer class="app-footer">
+    <div><a href="index.html">一覧へ</a></div>
+  </footer>
+
+  <script>
+(function(){
+  const params = new URLSearchParams(location.search);
+  const id = params.get('id');
+  const $ = (sel, el=document)=> el.querySelector(sel);
+
+  // Supabase初期化
+  if (window.supabase && !window.sb) {
+    window.sb = window.supabase.createClient("https://ctxyawinblwcbkovfsyj.supabase.co", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN0eHlhd2luYmx3Y2Jrb3Zmc3lqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ5NzE3MzIsImV4cCI6MjA3MDU0NzczMn0.HMMoDl_LPz8uICruD_tzn75eUpU7rp3RZx_N8CEfO1Q");
+  }
+
+  if(!window.sb){ alert('Supabase not initialized'); return; }
+  if(!id){ alert('レシピIDがありません'); location.href='index.html'; return; }
+
+  // 要素の取得
+  const titleEl = $('#recipeTitle');
+  const metaEl  = $('#meta');
+  const tagsEl  = $('#tags');
+  const favBtn  = $('#favBtn');
+  const introEl = $('#recipeIntro');
+  const notesEl = $('#notes');
+  const ingEl   = $('#ingredients');
+  const stepsEl = $('#steps');
+
+  // ボタンイベント
+  document.addEventListener('click', (e) => {
+    if(e.target.matches('.js-edit')) {
+      location.href = `recipe_edit.html?id=${encodeURIComponent(id)}`;
+    }
+    if(e.target.matches('.js-back')) {
+      location.href = 'index.html';
+    }
+  });
+
+  function esc(s){ 
+    return String(s ?? '').replace(/[&<>"']/g, m => ({ 
+      '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' 
+    }[m])); 
+  }
+
+  // identity設定（お気に入り機能用）
+  const identity = { uid: null, client_id: null };
+  (async () => {
+    try{
+      const { data: { user } } = await sb.auth.getUser();
+      identity.uid = user?.id || null;
+    }catch(e){}
+    identity.client_id = localStorage.getItem("client_id") || (crypto?.randomUUID?.() ? crypto.randomUUID() : String(Math.random()).slice(2));
+    localStorage.setItem("client_id", identity.client_id);
+  })();
+
+  // お気に入り機能
+  async function isFav(recipe_id){
+    let q = sb.from("favorites").select("id").eq("recipe_id", recipe_id).limit(1);
+    if(identity.uid) q = q.eq("user_id", identity.uid);
+    else q = q.eq("client_id", identity.client_id);
+    const { data, error } = await q;
+    if(error){ console.error(error); return null; }
+    return data?.[0] || null;
+  }
+
+  async function setFav(recipe_id, on){
+    if(on){
+      const payload = identity.uid
+        ? { recipe_id, user_id: identity.uid }
+        : { recipe_id, client_id: identity.client_id };
+      const { error } = await sb.from("favorites").insert(payload);
+      if(error && error.code!=="23505"){ throw error; }
+    }else{
+      let q = sb.from("favorites").delete().eq("recipe_id", recipe_id);
+      q = identity.uid ? q.eq("user_id", identity.uid) : q.eq("client_id", identity.client_id);
+      const { error } = await q;
+      if(error) throw error;
+    }
+  }
+
+  async function load(){
+    try {
+      // レシピ本体を取得
+      const { data: recs, error } = await sb.from('recipes').select('*').eq('id', id).limit(1);
+      if(error){ 
+        console.error(error); 
+        alert('レシピの取得に失敗しました'); 
+        return; 
+      }
+      const r = recs?.[0];
+      if(!r){ 
+        alert('レシピが見つかりません'); 
+        location.href = 'index.html';
+        return; 
+      }
+
+      // 基本情報の表示
+      titleEl.textContent = r.title || '無題のレシピ';
+      metaEl.textContent = r.updated_at ? `更新: ${new Date(r.updated_at).toLocaleString('ja-JP')}` : '';
+      
+      // タグの表示
+      const tags = Array.isArray(r.tags) ? r.tags : (r.tags ? String(r.tags).split(/[,\s]+/).filter(Boolean) : []);
+      if(tags.length){ 
+        tagsEl.innerHTML = tags.map(t=>`<span class="tag">${esc(t)}</span>`).join(''); 
+      }
+
+      // メモ・紹介文の表示
+      if(r.intro) introEl.textContent = r.intro;
+      if(r.notes) notesEl.textContent = r.notes;
+      // meta.noteもチェック
+      if(r.meta?.note) notesEl.textContent = r.meta.note;
+
+      // お気に入りボタンの設定
+      setupFavoriteButton(r.id);
+
+      // 材料の取得と表示
+      const { data: ings, error: e1 } = await sb.from('recipe_ingredients').select('*').eq('recipe_id', id).order('position', {ascending:true}).order('id', {ascending:true});
+      if(!e1 && ings?.length){
+        const html = `
+          <table class="table">
+            <thead>
+              <tr><th>材料名</th><th class="num">分量</th><th>単位</th></tr>
+            </thead>
+            <tbody>
+              ${ings.map(ing => `
+                <tr>
+                  <td>${esc(ing.item || '')}</td>
+                  <td class="num">${ing.quantity || ''}</td>
+                  <td>${esc(ing.unit || '')}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        `;
+        ingEl.innerHTML = html;
+      } else {
+        ingEl.innerHTML = '<div class="muted">材料が登録されていません</div>';
+      }
+
+      // 手順の取得と表示
+      const { data: steps, error: e2 } = await sb.from('recipe_steps').select('*').eq('recipe_id', id).order('position', {ascending:true}).order('id', {ascending:true});
+      if(!e2 && steps?.length){
+        stepsEl.innerHTML = steps.map(s => `
+          <li>
+            ${esc(s.instruction || s.step || s.description || s.body || '')}
+            ${s.timer_sec ? `<span class="muted"> (${s.timer_sec}秒)</span>` : ''}
+            ${s.temp_c ? `<span class="muted"> (${s.temp_c}℃)</span>` : ''}
+          </li>
+        `).join('');
+      } else {
+        stepsEl.innerHTML = '<li class="muted">手順が登録されていません</li>';
+      }
+
+    } catch(err) {
+      console.error(err);
+      alert('レシピの読み込み中にエラーが発生しました');
+    }
+  }
+
+  async function setupFavoriteButton(recipe_id) {
+    try {
+      const f = await isFav(recipe_id);
+      let on = !!f;
+      
+      function updateButton() {
+        favBtn.textContent = on ? '♥ お気に入り' : '♡ お気に入り';
+        favBtn.style.background = on ? '#e74c3c' : '';
+      }
+      
+      updateButton();
+      
+      favBtn.addEventListener('click', async () => {
+        try {
+          on = !on;
+          await setFav(recipe_id, on);
+          updateButton();
+        } catch(err) {
+          console.error(err);
+          alert('お気に入りの更新に失敗しました: ' + (err?.message || err));
+          on = !on; // 元に戻す
+          updateButton();
+        }
+      });
+    } catch(err) {
+      console.error('お気に入り状態の取得に失敗:', err);
+    }
+  }
+
+  // ページ読み込み時に実行
+  load();
+})();
+  </script>
+</body>
+</html>

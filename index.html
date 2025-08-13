@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Recipe Box — Index</title>
+  <!-- 正しいパスに修正 -->
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="stylesheet" href="assets/css/drawer.vertical.css">
+  <style>
+    /* このページ固有のスタイル */
+    .card { cursor: pointer; }
+    .card:hover { background-color: #f0f8f4; }
+    .empty { padding: 2rem; text-align: center; color: var(--ink-sub); }
+    .tabs { display: flex; gap: 8px; border-bottom: 1px solid var(--line-soft); margin-bottom: 1rem; }
+    .tab { padding: 8px 16px; border: none; background: transparent; cursor: pointer; border-bottom: 2px solid transparent; }
+    .tab.is-active { border-bottom-color: var(--accent); font-weight: 600; }
+    .grid { display: grid; gap: 1rem; }
+    @media (min-width: 768px) {
+      .grid.two-col { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <input id="drawer-toggle" type="checkbox" class="drawer-toggle" aria-label="メニューを開閉" />
+  <aside class="drawer">
+    <div class="drawer-header">メニュー</div>
+    <nav class="drawer-nav">
+      <a href="index.html" class="drawer-link">ホーム</a>
+      <button class="drawer-link js-new">新規レシピ</button>
+    </nav>
+  </aside>
+  <label for="drawer-toggle" class="hamburger" aria-label="メニュー">
+    <span></span><span></span><span></span>
+  </label>
+
+  <header class="app-header">
+    <h1 class="brand">Recipe Box</h1>
+    <div class="header-actions" data-actions>
+      <button class="btn js-new">新規作成</button>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="tabs" role="tablist">
+      <button class="tab is-active" role="tab" data-tab="all" aria-selected="true">すべて</button>
+      <button class="tab" role="tab" data-tab="favorites">お気に入り</button>
+    </section>
+
+    <section class="grid two-col" id="cardList" aria-live="polite">
+      <!-- レシピカードはJavaScriptによってここに描画されます -->
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    <div>© 2025 Recipe Box</div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="assets/js/app-index.js"></script>
+</body>
+</html>
