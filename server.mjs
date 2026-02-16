@@ -8,7 +8,7 @@ const __dirname = path.dirname(__filename);
 const publicDir = path.join(__dirname, "public");
 
 const PORT = Number(process.env.PORT || 3000);
-const HOST = process.env.HOST || "127.0.0.1";
+const HOST = process.env.HOST || "0.0.0.0";
 const CORS_ALLOW_ORIGIN = process.env.CORS_ALLOW_ORIGIN || "*";
 const CACHE_TTL_MS = Number(process.env.CACHE_TTL_MS || 180000);
 const REQUEST_TIMEOUT_MS = Number(process.env.REQUEST_TIMEOUT_MS || 20000);
